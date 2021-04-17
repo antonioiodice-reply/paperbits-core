@@ -44,18 +44,6 @@ export class GooglmapsBindingHandler {
             zoom: configuration.zoom
         });
 
-        const marker: google.maps.Marker = new google.maps.Marker();
-        marker.setMap(map);
-
-        if (configuration.markerIcon) {
-            const icon: google.maps.Icon = {
-                url: configuration.markerIcon,
-                scaledSize: new google.maps.Size(50, 50)
-            };
-
-            marker.setIcon(icon);
-        }
-
         const locationToPosition = async (location: string): Promise<google.maps.LatLng> => {
             const request: google.maps.GeocoderRequest = {};
             const coordinates = new RegExp("(-?\\d+\(?:.\\d+)?),(-?\\d+\(?:.\\d+)?)").exec(location);
@@ -83,19 +71,7 @@ export class GooglmapsBindingHandler {
             });
         };
 
-        const setCaption = (caption: string) => {
-            const infowindow = new google.maps.InfoWindow();
-            infowindow.setContent(caption);
-
-            if (caption && caption.length > 0) {
-                infowindow.open(map, marker);
-            }
-            else {
-                infowindow.close();
-            }
-        };
-
-        class Popup extends google.maps.OverlayView {
+        class PopupAnchor extends google.maps.OverlayView {
             private readonly content: HTMLElement;
 
             constructor(private readonly position: google.maps.LatLng) {
@@ -105,20 +81,13 @@ export class GooglmapsBindingHandler {
 
             /** Called when the popup is added to the map. */
             public onAdd(): void {
-                Popup.preventMapHitsAndGesturesFrom(this.content);
+                PopupAnchor.preventMapHitsAndGesturesFrom(this.content);
 
                 this.content.setAttribute("data-toggle", "popup");
                 this.content.setAttribute("data-target", `#${configuration.markerPopupKey.replace("popups/", "popups")}`);
 
                 this.getPanes().floatPane.appendChild(this.content);
                 document.dispatchEvent(new CustomEvent("onPopupRequested", { detail: configuration.markerPopupKey }));
-            }
-
-            /** Called when the popup is removed from the map. */
-            public onRemove(): void {
-                // if (this.popupElement.parentElement) {
-                //     this.popupElement.parentElement.removeChild(this.popupElement);
-                // }
             }
 
             /** Called each frame when the popup needs to draw itself. */
@@ -134,21 +103,38 @@ export class GooglmapsBindingHandler {
 
         const position = await locationToPosition(configuration.location);
 
+        const marker: google.maps.Marker = new google.maps.Marker();
+        marker.setMap(map);
+
+        if (configuration.markerIcon) {
+            const icon: google.maps.Icon = {
+                url: configuration.markerIcon,
+                scaledSize: new google.maps.Size(50, 50)
+            };
+
+            marker.setIcon(icon);
+        }
+
         marker.setPosition(position);
         map.setCenter(position);
 
         if (configuration.markerPopupKey) {
-            const popup = new Popup(position);
-            popup.setMap(map);
+            const anchor = new PopupAnchor(position);
+            anchor.setMap(map);
 
-            marker.addListener("click", () => {
-                document.dispatchEvent(new CustomEvent("onPopupRequested", { detail: configuration.markerPopupKey }));
-            });
+            marker.addListener("click", () => document.dispatchEvent(new CustomEvent("onPopupRequested", { detail: configuration.markerPopupKey })));
         }
         else {
-            setCaption(configuration.caption);
-        }
+            const infowindow = new google.maps.InfoWindow();
+            infowindow.setContent(configuration.caption);
 
+            if (configuration.caption.length > 0) {
+                infowindow.open(map, marker);
+            }
+            else {
+                infowindow.close();
+            }
+        }
     }
 }
 
