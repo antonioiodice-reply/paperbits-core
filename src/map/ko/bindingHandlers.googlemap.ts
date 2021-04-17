@@ -20,6 +20,8 @@ export class GooglmapsBindingHandler {
         const loader = new Loader({ apiKey: configuration.apiKey, ...options });
         await loader.load();
 
+        const markerWidth = 50;
+        const markerHeight = 50;
         const geocoder = new google.maps.Geocoder();
         const mapOptions: google.maps.MapOptions = {};
         const map = new google.maps.Map(element, mapOptions);
@@ -85,6 +87,7 @@ export class GooglmapsBindingHandler {
 
                 this.content.setAttribute("data-toggle", "popup");
                 this.content.setAttribute("data-target", `#${configuration.markerPopupKey.replace("popups/", "popups")}`);
+                this.content.setAttribute("data-position", "top");
 
                 this.getPanes().floatPane.appendChild(this.content);
                 document.dispatchEvent(new CustomEvent("onPopupRequested", { detail: configuration.markerPopupKey }));
@@ -94,10 +97,19 @@ export class GooglmapsBindingHandler {
             public draw(): void {
                 const elementPosition = this.getProjection().fromLatLngToDivPixel(this.position);
 
-                this.content.style.left = elementPosition.x + "px";
-                this.content.style.top = elementPosition.y + "px";
+                this.content.style.left = elementPosition.x - Math.floor(markerWidth / 2) + "px";
+                this.content.style.top = elementPosition.y - Math.floor(markerHeight / 2) + "px";
+                this.content.style.width = markerWidth + "px";
+                this.content.style.height = markerHeight + "px";
 
-                document.dispatchEvent(new CustomEvent("onPopupRepositionRequested", { detail: this.content }));
+                document.dispatchEvent(new CustomEvent("onPopupRepositionRequested", {
+                    detail: {
+                        element: this.content,
+                        placement: "top"
+                        // offsetX:
+                        // offsetY:
+                    }
+                }));
             }
         }
 
@@ -109,7 +121,7 @@ export class GooglmapsBindingHandler {
         if (configuration.markerIcon) {
             const icon: google.maps.Icon = {
                 url: configuration.markerIcon,
-                scaledSize: new google.maps.Size(50, 50)
+                scaledSize: new google.maps.Size(markerWidth, markerHeight)
             };
 
             marker.setIcon(icon);
