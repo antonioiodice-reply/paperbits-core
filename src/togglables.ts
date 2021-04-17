@@ -182,18 +182,21 @@ const onShowPopup = (toggleElement: HTMLElement, targetElement: HTMLElement): vo
 };
 
 const onPopupRequest = (event: CustomEvent): void => {
-    const qqq = document.querySelector(".show");
-
-    if (qqq) {
-        qqq.classList.remove("show");
-    }
-
-
     const popupKey = event.detail;
     const targetSelector = `#${popupKey.replace("popups/", "popups")}`;
     const targetElement = <HTMLElement>document.querySelector(targetSelector);
     const triggerSelector = `[data-target="${targetSelector}"]`;
     const triggerElement = <HTMLElement>document.querySelector(triggerSelector);
+
+    if (targetElement.classList.contains(showClassName)) {
+        return;
+    }
+
+    const openTargetElement = document.querySelector(`.${showClassName}`);
+
+    if (openTargetElement) {
+        openTargetElement.classList.remove(showClassName);
+    }
 
     onShowPopup(triggerElement, targetElement);
 };

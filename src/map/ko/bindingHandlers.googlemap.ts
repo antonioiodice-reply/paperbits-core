@@ -96,28 +96,21 @@ export class GooglmapsBindingHandler {
         };
 
         class Popup extends google.maps.OverlayView {
-            private content: HTMLElement;
-            private position: any;
+            private readonly content: HTMLElement;
 
-            constructor(position: google.maps.LatLng) {
+            constructor(private readonly position: google.maps.LatLng) {
                 super();
-                this.position = position;
-
                 this.content = document.createElement("div");
-
-                // Optionally stop clicks, etc., from bubbling up to the map.
-                Popup.preventMapHitsAndGesturesFrom(this.content);
             }
 
             /** Called when the popup is added to the map. */
             public onAdd(): void {
+                Popup.preventMapHitsAndGesturesFrom(this.content);
+
                 this.content.setAttribute("data-toggle", "popup");
                 this.content.setAttribute("data-target", `#${configuration.markerPopupKey.replace("popups/", "popups")}`);
 
                 this.getPanes().floatPane.appendChild(this.content);
-
-                console.log(configuration.markerPopupKey);
-
                 document.dispatchEvent(new CustomEvent("onPopupRequested", { detail: configuration.markerPopupKey }));
             }
 
@@ -130,6 +123,11 @@ export class GooglmapsBindingHandler {
 
             /** Called each frame when the popup needs to draw itself. */
             public draw(): void {
+                const elementPosition = this.getProjection().fromLatLngToDivPixel(this.position);
+
+                this.content.style.left = elementPosition.x + "px";
+                this.content.style.top = elementPosition.y + "px";
+
                 document.dispatchEvent(new CustomEvent("onPopupRepositionRequested", { detail: this.content }));
             }
         }
@@ -139,10 +137,13 @@ export class GooglmapsBindingHandler {
         marker.setPosition(position);
         map.setCenter(position);
 
-
         if (configuration.markerPopupKey) {
             const popup = new Popup(position);
             popup.setMap(map);
+
+            marker.addListener("click", () => {
+                document.dispatchEvent(new CustomEvent("onPopupRequested", { detail: configuration.markerPopupKey }));
+            });
         }
         else {
             setCaption(configuration.caption);
