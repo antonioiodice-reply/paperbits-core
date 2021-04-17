@@ -9,7 +9,7 @@ import { ViewManager } from "@paperbits/common/ui";
 import { CommonEvents, EventManager } from "@paperbits/common/events";
 import { MediaContract } from "@paperbits/common/media";
 import { BackgroundModel } from "@paperbits/common/widgets/background";
-import { IPermalinkResolver } from "@paperbits/common/permalinks";
+import { HyperlinkModel, IPermalinkResolver } from "@paperbits/common/permalinks";
 
 
 interface MapTypeOption {
@@ -30,6 +30,8 @@ export class MapEditor {
     public readonly mapTypeOptions: ko.ObservableArray<MapTypeOption>;
     public readonly sizeConfig: ko.Observable<SizeStylePluginConfig>;
     public readonly background: ko.Observable<BackgroundModel>;
+    public readonly hyperlink: ko.Observable<HyperlinkModel>;
+    public readonly hyperlinkTitle: ko.Computed<string>;
 
     constructor(
         private readonly viewManager: ViewManager,
@@ -43,6 +45,8 @@ export class MapEditor {
         this.mapType = ko.observable<string>("terrain");
         this.sizeConfig = ko.observable();
         this.background = ko.observable();
+        this.hyperlink = ko.observable<HyperlinkModel>();
+        this.hyperlinkTitle = ko.computed<string>(() => this.hyperlink() ? this.hyperlink().title : "Attach popup...");
 
         this.mapTypeOptions = ko.observableArray<MapTypeOption>([
             { label: "Terrain", value: "terrain" },
@@ -128,6 +132,18 @@ export class MapEditor {
             background.position = "center center";
             this.background(background);
         }
+
+        this.onChange(this.model);
+    }
+
+    public onHyperlinkChange(hyperlink: HyperlinkModel): void {
+        this.hyperlink(hyperlink);
+
+        if (!this.model.marker) {
+            this.model.marker = new MarkerModel();
+        }
+
+        this.model.marker.popupKey = hyperlink.targetKey;
 
         this.onChange(this.model);
     }

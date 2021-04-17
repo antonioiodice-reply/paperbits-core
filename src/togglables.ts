@@ -121,11 +121,12 @@ const onShowPopup = (toggleElement: HTMLElement, targetElement: HTMLElement): vo
 
     const popupContainerElement: HTMLElement = targetElement.querySelector(popupContainerClass);
 
-    const repositionPopup = (): void => {
+    const repositionPopup = (event?: CustomEvent): void => {
         const computedStyles = getComputedStyle(popupContainerElement);
+        const actualToggleElement = event?.detail || toggleElement;
 
         if (computedStyles.position === "absolute") {
-            const toggleElementRect = toggleElement.getBoundingClientRect();
+            const toggleElementRect = actualToggleElement.getBoundingClientRect();
             const popupContainerElement: HTMLElement = targetElement.querySelector(popupContainerClass);
             popupContainerElement.style.top = window.scrollY + toggleElementRect.bottom + "px";
             popupContainerElement.style.left = toggleElementRect.left + "px";
@@ -181,6 +182,13 @@ const onShowPopup = (toggleElement: HTMLElement, targetElement: HTMLElement): vo
 };
 
 const onPopupRequest = (event: CustomEvent): void => {
+    const qqq = document.querySelector(".show");
+
+    if (qqq) {
+        qqq.classList.remove("show");
+    }
+
+
     const popupKey = event.detail;
     const targetSelector = `#${popupKey.replace("popups/", "popups")}`;
     const targetElement = <HTMLElement>document.querySelector(targetSelector);
