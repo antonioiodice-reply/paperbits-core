@@ -110,6 +110,8 @@ export class PopupSelector {
         }
 
         this.eventManager.dispatchEvent("onPopupCreate", popupContract.key);
+
+        this.searchPopups();
     }
 
     public async deletePopup(): Promise<void> {
