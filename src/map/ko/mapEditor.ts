@@ -36,7 +36,8 @@ export class MapEditor {
     constructor(
         private readonly viewManager: ViewManager,
         private readonly eventManager: EventManager,
-        private readonly mediaPermalinkResolver: IPermalinkResolver
+        private readonly mediaPermalinkResolver: IPermalinkResolver,
+        private readonly popupPermalinkResolver: IPermalinkResolver
     ) {
         this.location = ko.observable<string>();
         this.caption = ko.observable<string>();
@@ -99,6 +100,11 @@ export class MapEditor {
             background.sourceKey = this.model.marker.sourceKey;
             background.sourceUrl = await this.mediaPermalinkResolver.getUrlByTargetKey(this.model.marker.sourceKey);
             this.background(background);
+        }
+
+        if (this.model.marker?.popupKey) {
+            const hyperlink = await this.popupPermalinkResolver.getHyperlinkByTargetKey(this.model.marker?.popupKey);
+            this.hyperlink(hyperlink);
         }
     }
 
