@@ -47,7 +47,7 @@ export class MapModelBinder implements IModelBinder<MapModel> {
                 sourceKey: model.marker.sourceKey,
                 width: model.marker.width,
                 height: model.marker.height,
-                popupKey: model.marker.sourceKey
+                popupKey: model.marker.popupKey
             };
         }
 
