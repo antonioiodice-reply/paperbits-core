@@ -28,11 +28,12 @@ export class GridEditor {
     ) {
         this.rerenderEditors = this.rerenderEditors.bind(this);
         this.onPointerDown = this.onPointerDown.bind(this);
-        this.attach = this.attach.bind(this);
-        this.detach = this.detach.bind(this);
+        this.initialize = this.initialize.bind(this);
+        this.dispose = this.dispose.bind(this);
         this.onDelete = this.onDelete.bind(this);
         this.onPointerMove = this.onPointerMove.bind(this);
         this.onWindowScroll = this.onWindowScroll.bind(this);
+        this.onKeyDown = this.onKeyDown.bind(this);
 
         this.actives = {};
     }
@@ -234,21 +235,32 @@ export class GridEditor {
                 element["dragSource"].beginDrag(element, this.pointerX, this.pointerY);
             }
 
-            const contextualEditor = this.getContextualEditor(element, "top");
-
-            if (!contextualEditor) {
-                return;
-            }
-
-            const config: IHighlightConfig = {
-                element: this.activeHighlightedElement,
-                text: widgetBinding.displayName,
-                color: contextualEditor.color
-            };
-
-            this.viewManager.setSelectedElement(config, contextualEditor);
-            this.selectedContextualEditor = contextualEditor;
+            this.selectElement({
+                binding: widgetBinding,
+                element: element
+            });
         }
+    }
+
+    private selectElement(item: WidgetStackItem): void {
+        if (!item) {
+            throw new Error(`Parameter "item" not specified.`);
+        }
+
+        const contextualEditor = this.getContextualEditor(item.element, "top");
+
+        if (!contextualEditor) {
+            return;
+        }
+
+        const config: IHighlightConfig = {
+            element: item.element,
+            text: item.binding.displayName,
+            color: contextualEditor.color
+        };
+
+        this.viewManager.setSelectedElement(config, contextualEditor);
+        this.selectedContextualEditor = contextualEditor;
     }
 
     private onPointerMove(event: PointerEvent): void {
@@ -277,6 +289,66 @@ export class GridEditor {
             case ViewManagerMode.dragging:
                 this.renderDropHandlers();
                 break;
+        }
+    }
+
+    private onKeyDown(event: KeyboardEvent): void {
+        const selectedElement = this.viewManager.getSelectedElement();
+
+        if (!selectedElement) {
+            return;
+        }
+
+        const stack = GridHelper.getWidgetStack(selectedElement.element);
+        const model = stack[0].binding.model;
+        let parentModel;
+        let indexIndexInParent;
+
+        if (stack.length > 1) {
+            parentModel = stack[1].binding.model;
+            indexIndexInParent = parentModel.widgets.indexOf(model);
+        }
+
+        switch (event.key) {
+            case "ArrowRight":
+                if (parentModel && indexIndexInParent < parentModel.widgets.length - 1) {
+                    const nextSiblingModelModel = parentModel.widgets[indexIndexInParent + 1];
+                    const nextSiblingStackItem = GridHelper.findTopElementByModel(stack[1].element, nextSiblingModelModel);
+                    this.selectElement(nextSiblingStackItem);
+                }
+
+                break;
+
+            case "ArrowLeft":
+                if (parentModel && indexIndexInParent > 0) {
+                    const prevSiblingModelModel = parentModel.widgets[indexIndexInParent - 1];
+                    const prevSiblingStackItem = GridHelper.findTopElementByModel(stack[1].element, prevSiblingModelModel);
+                    this.selectElement(prevSiblingStackItem);
+                }
+                break;
+
+            case "ArrowUp":
+                if (parentModel) {
+                    this.selectElement(stack[1]);
+                }
+                break;
+
+            case "ArrowDown":
+                if (model?.widgets?.length > 0) {
+                    const firstChildModel = model.widgets[0];
+                    const firstChildItem = GridHelper.findTopElementByModel(selectedElement.element, firstChildModel);
+
+                    if (firstChildItem) {
+                        this.selectElement(firstChildItem);
+                    }
+                    else {
+                        console.log(selectedElement.element);
+                    }
+                }
+                break;
+
+            default:
+                return;
         }
     }
 
@@ -569,21 +641,24 @@ export class GridEditor {
         }
     }
 
-    public attach(ownerDocument: Document): void {
+    public initialize(ownerDocument: Document): void {
         this.ownerDocument = ownerDocument;
         // Firefox doesn't fire "pointermove" events by some reason
         this.ownerDocument.addEventListener("mousemove", this.onPointerMove, true);
         this.ownerDocument.addEventListener("scroll", this.onWindowScroll);
         this.ownerDocument.addEventListener("mousedown", this.onPointerDown, true);
         this.ownerDocument.addEventListener("click", this.onMouseClick, true);
+        this.eventManager.addEventListener("onKeyDown", this.onKeyDown);
         this.eventManager.addEventListener("onDelete", this.onDelete);
     }
 
-    public detach(): void {
+    public dispose(): void {
         this.ownerDocument.removeEventListener("mousemove", this.onPointerMove, true);
         this.ownerDocument.removeEventListener("scroll", this.onWindowScroll);
         this.ownerDocument.removeEventListener("mousedown", this.onPointerDown, true);
         this.ownerDocument.removeEventListener("click", this.onMouseClick, false);
+        this.eventManager.removeEventListener("onKeyDown", this.onKeyDown);
         this.eventManager.removeEventListener("onDelete", this.onDelete);
+
     }
 }
