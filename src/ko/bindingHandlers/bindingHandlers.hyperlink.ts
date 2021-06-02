@@ -2,40 +2,46 @@
 import { HyperlinkModel, HyperlinkTarget } from "@paperbits/common/permalinks";
 
 ko.bindingHandlers["hyperlink"] = {
-    init(element: HTMLElement, valueAccessor: () => HyperlinkModel): void {
+    update(element: HTMLElement, valueAccessor: () => HyperlinkModel): void {
         const hyperlink: HyperlinkModel = valueAccessor();
         const attributesObservable = ko.observable();
 
         const setElementAttributes = (hyperlink: HyperlinkModel) => {
-            if (!hyperlink) {
-                attributesObservable({ href: "#", target: "_blank" });
-                return;
+            let href = "#";
+            let toggleType = null;
+            let toggleTarget = null;
+            let isDownloadLink = false;
+            let targetWindow = null;
+
+            if (hyperlink) {
+                switch (hyperlink.target) {
+                    case HyperlinkTarget.popup:
+                        href = "javascript:void(0)";
+                        toggleType = "popup";
+                        toggleTarget = `#${hyperlink.targetKey.replace("popups/", "popups")}`;
+                        break;
+
+                    case HyperlinkTarget.download:
+                        href = hyperlink.href;
+                        isDownloadLink = true;
+                        break;
+
+                    default:
+                        href = `${hyperlink.href}${hyperlink.anchor ? "#" + hyperlink.anchor : ""}`;
+                        targetWindow = hyperlink.target;
+                }
             }
 
-            let hyperlinkObj;
+            const hyperlinkObj = {
+                "href": href,
+                "target": targetWindow,
+                "data-toggle": toggleType,
+                "data-target": toggleTarget,
+                "download": isDownloadLink
+                    ? "" // Leave empty unless file name gets specified.
+                    : null
+            };
 
-            switch (hyperlink.target) {
-                case HyperlinkTarget.popup:
-                    hyperlinkObj = {
-                        "data-toggle": "popup",
-                        "data-target": `#${hyperlink.targetKey.replace("popups/", "popups")}`,
-                        "href": "javascript:void(0)"
-                    };
-                    break;
-
-                case HyperlinkTarget.download:
-                    hyperlinkObj = {
-                        href: hyperlink.href,
-                        download: "" // Leave empty unless file name gets specified.
-                    };
-                    break;
-
-                default:
-                    hyperlinkObj = {
-                        href: `${hyperlink.href}${hyperlink.anchor ? "#" + hyperlink.anchor : ""}`,
-                        target: hyperlink.target
-                    };
-            }
             attributesObservable(hyperlinkObj);
         };
 

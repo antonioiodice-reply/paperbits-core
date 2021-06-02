@@ -11,22 +11,7 @@ const onPopupRepositionRequestedEvent = "onPopupRepositionRequested";
 const onPopupRequestedEvent = "onPopupRequested";
 
 
-const onClick = (event: MouseEvent): void => {
-    if (event.button !== 0) {
-        return;
-    }
-
-    const clickedElement = <HTMLElement>event.target;
-    const toggleElement = <HTMLElement>clickedElement.closest(`[${toggleAtributeName}]`);
-
-    if (!toggleElement) {
-        return;
-    }
-
-    event.preventDefault();
-
-    const toggleType = toggleElement.getAttribute(toggleAtributeName);
-
+const onActivate = (toggleElement: HTMLElement, toggleType: string): void => {
     switch (toggleType) {
         case "popup":
             const targetSelector = toggleElement.getAttribute(targetAttributeName);
@@ -58,6 +43,41 @@ const onClick = (event: MouseEvent): void => {
         default:
             console.warn(`Unknown data-toggle value ${toggleType}`);
     }
+};
+
+
+const onClick = (event: MouseEvent): void => {
+    if (event.button !== 0) {
+        return;
+    }
+
+    const clickedElement = <HTMLElement>event.target;
+    const toggleElement = <HTMLElement>clickedElement.closest(`[${toggleAtributeName}]`);
+
+    if (!toggleElement) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const toggleType = toggleElement.getAttribute(toggleAtributeName);
+    onActivate(toggleElement, toggleType);
+};
+
+const onMouseEnter = (event: MouseEvent): void => {
+    const clickedElement = <HTMLElement>event.target;
+    const toggleElement = <HTMLElement>clickedElement.closest(`[${toggleAtributeName}]`);
+
+    if (!toggleElement) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const toggleType = toggleElement.getAttribute(toggleAtributeName);
+    onActivate(toggleElement, toggleType);
+
+    console.log(toggleElement);
 };
 
 const onKeyDown = (event: KeyboardEvent) => {
@@ -241,6 +261,61 @@ const onPopupRequest = (event: CustomEvent): void => {
     onShowPopup(triggerElement, targetElement);
 };
 
-addEventListener("mousedown", onClick, true);
-addEventListener("keydown", onKeyDown, true);
+// addEventListener("mousedown", onClick, true);
+// addEventListener("keydown", onKeyDown, true);
 document.addEventListener(onPopupRequestedEvent, onPopupRequest);
+
+
+
+
+
+// const toggles = Arrays.coerce<HTMLElement>(document.querySelectorAll(`[${toggleAtributeName}]`));
+
+// toggles.forEach(toggle => {
+//     toggle.addEventListener("mousedown", onClick, true);
+//     toggle.addEventListener("keydown", onKeyDown, true);
+// });
+
+const selector = `[${toggleAtributeName}]`;
+
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        const target = <HTMLElement>mutation.target;
+
+        if (mutation.type === "attributes" && mutation.attributeName === toggleAtributeName) {
+            const newValue = target.getAttribute(mutation.attributeName);
+
+            if (newValue === null) {
+                target.removeEventListener("mousedown", onClick);
+                target.removeEventListener("keydown", onKeyDown);
+                target.removeEventListener("mouseleave", onMouseEnter);
+            }
+            return;
+        }
+
+        mutation.addedNodes.forEach((addedNode: HTMLElement) => {
+            if (!addedNode.matches || !addedNode.matches(selector)) {
+                return;
+            }
+
+
+
+            // addedNode.addEventListener("mousedown", onClick);
+            // addedNode.addEventListener("keydown", onKeyDown);
+            addedNode.addEventListener("mouseenter", onMouseEnter);
+            // addedNode.addEventListener("mouseleave", onMouseLeave);
+        });
+
+        mutation.removedNodes.forEach((addedNode: HTMLElement) => {
+            if (!addedNode.matches || !addedNode.matches(selector)) {
+                return;
+            }
+
+            // addedNode.removeEventListener("mousedown", onClick);
+            // addedNode.removeEventListener("keydown", onKeyDown);
+            addedNode.removeEventListener("mouseenter", onMouseEnter);
+        });
+    });
+});
+
+observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true });
